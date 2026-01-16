@@ -14,6 +14,7 @@ load_dotenv(dotenv_path=".env")
 app = FastAPI() 
  
 # Connect to MongoDB Atlas 
+# gets the mongo_uri from the .env
 client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv("MONGO_URI")) 
 db = client.event_management_db 
  
@@ -68,6 +69,19 @@ async def upload_event_poster(event_id: str, file: UploadFile = File(...)):
     } 
     result = await db.event_posters.insert_one(poster_doc) 
     return {"message": "Event poster uploaded", "id": str(result.inserted_id)}
+
+#Downlaod Event
+@app.get("/get_event_poster/{event_id}")
+async def get_event_poster(event_id: str):
+    poster = await db.event_posters.find_one({"event_id": event_id})
+    if not poster:
+        raise HTTPException(status_code=404, detail="Event poster not found")
+
+    return StreamingResponse(
+        io.BytesIO(poster["content"]),
+        media_type=poster["content_type"],
+        headers={"Content-Disposition": f"attachment; filename={poster['filename']}"}
+    )
 
 # Venue Endpoints
 @app.post("/venues")#Creates a new venue in database which takes in the venue object
@@ -141,6 +155,20 @@ async def upload_venue_photo(venue_id: str, file: UploadFile = File(...)):
     result = await db.venue_photos.insert_one(poster_doc)
     return {"message": "Venue photo uploaded", "id": str(result.inserted_id)} #Success message with photo ID
 
+# Download Venue Photo (Image)
+@app.get("/get_venue_photo/{venue_id}")
+async def get_venue_photo(venue_id: str):
+    photo = await db.venue_photos.find_one({"venue_id": venue_id})
+    if not photo:
+        raise HTTPException(status_code=404, detail="Venue photo not found")
+
+    return StreamingResponse(
+        io.BytesIO(photo["content"]),
+        media_type=photo["content_type"],
+        headers={"Content-Disposition": f"attachment; filename={photo['filename']}"}
+    )
+
+
 # Upload Promo Video (Video)
 @app.post("/upload_promo_video/{event_id}") #Upload a video file as promotional video which takes the id of the event and the uploaded video file
 async def upload_promo_videos(event_id: str, file: UploadFile = File(...)):
@@ -155,3 +183,16 @@ async def upload_promo_videos(event_id: str, file: UploadFile = File(...)):
     }
     result = await db.promo_videos.insert_one(poster_doc)
     return {"message": "Promo video uploaded", "id": str(result.inserted_id)} #Success message with video ID
+
+# Display Promo Video (Video)
+@app.get("/get_promo_video/{event_id}")
+async def get_promo_video(event_id: str):
+    video = await db.promo_videos.find_one({"event_id": event_id})
+    if not video:
+        raise HTTPException(status_code=404, detail="Promo video not found")
+
+    return StreamingResponse(
+        io.BytesIO(video["content"]),
+        media_type=video["content_type"],
+        headers={"Content-Disposition": f"inline; filename={video['filename']}"}
+    )
