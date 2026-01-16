@@ -9,7 +9,7 @@ import motor.motor_asyncio
 import io 
  
 # Load environment variables from .env file 
-load_dotenv() 
+load_dotenv(dotenv_path=".env") 
  
 app = FastAPI() 
  
