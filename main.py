@@ -7,7 +7,8 @@ from datetime import datetime
 from dotenv import load_dotenv 
 import motor.motor_asyncio 
 import io 
- 
+from bson import ObjectId 
+
 # Load environment variables from .env file 
 load_dotenv(dotenv_path=".env") 
  
@@ -110,6 +111,33 @@ async def get_attendees():
     for attendee in attendees:
         attendee["_id"] = str(attendee["_id"])
     return attendees #Return list of attendees
+
+# UPDATE an attendee
+@app.put("/attendees/{attendee_id}")
+async def update_attendee(attendee_id: str, attendee: Attendee):
+    # Update attendee details using their ID
+    result = await db.attendees.update_one(
+        {"_id": ObjectId(attendee_id)},  # Match attendee by ID
+        {"$set": attendee.dict()}        # Update attendee data
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Attendee not found")
+
+    return {"message": "Attendee updated"}
+# DELETE an attendee
+@app.delete("/attendees/{attendee_id}")
+async def delete_attendee(attendee_id: str):
+    # Delete attendee record from the database
+    result = await db.attendees.delete_one(
+        {"_id": ObjectId(attendee_id)}
+    )
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Attendee not found")
+
+    return {"message": "Attendee deleted"}
+
 
 # Booking Endpoints
 @app.post("/bookings")#Creates a new booking in database which takes in the booking object
